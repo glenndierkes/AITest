@@ -1,7 +1,7 @@
 
-print("Hello World")
-
 #!/usr/bin/env python3
+
+print("Hello World")
 """
 Bulk manage AWS Lambda reserved concurrency.
 
@@ -56,6 +56,10 @@ from botocore.exceptions import ClientError
 
 
 def make_client(region: Optional[str]):
+    if not region:
+        region = boto3.session.Session().region_name
+        if not region:
+            raise ValueError("AWS region not specified and no default region found")
     return boto3.client("lambda", region_name=region)
 
 
@@ -203,7 +207,7 @@ def main():
             for fn, _ in targets:
                 print(f"[DRYRUN REMOVE] {fn}")
             return
-        with ThreadPoolExecutor() as ex:
+        with ThreadPoolExecutor(max_workers=10) as ex:
             futs = {ex.submit(delete_concurrency, client, fn): fn for fn, _ in targets}
             had_error = False
             for fut in as_completed(futs):
